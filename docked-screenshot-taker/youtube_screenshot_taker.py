@@ -3,6 +3,7 @@ import os
 import re
 import argparse
 from urllib.parse import quote_plus # For safe filenames
+import sys
 
 def generate_safe_filename(base_name, timestamp_str, extension="jpg"):
     """Generates a filesystem-safe filename."""
@@ -31,47 +32,47 @@ def take_youtube_screenshots(youtube_url: str, timestamps: list, output_dir: str
     if not os.path.exists(output_dir):
         try:
             os.makedirs(output_dir)
-            print(f"Created output directory: {output_dir}")
+            print(f"Created output directory: {output_dir}", file=sys.stderr)
         except OSError as e:
-            print(f"Error creating output directory {output_dir}: {e}")
+            print(f"Error creating output directory {output_dir}: {e}", file=sys.stderr)
             return []
 
     video_stream_url = ""
     try:
-        print(f"Fetching video stream URL for: {youtube_url}")
+        print(f"Fetching video stream URL for: {youtube_url}", file=sys.stderr)
         yt_dlp_command = ["yt-dlp", "-f", "bestvideo", "-g", "--no-warnings", youtube_url]
         process = subprocess.Popen(yt_dlp_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, encoding='utf-8')
         stdout, stderr = process.communicate(timeout=60)
 
         if process.returncode == 0 and stdout:
             video_stream_url = stdout.strip().split('\n')[0]
-            print(f"Successfully fetched stream URL: {video_stream_url}")
+            print(f"Successfully fetched stream URL: {video_stream_url}", file=sys.stderr)
         else:
-            print(f"Error getting 'bestvideo' stream URL from yt-dlp for {youtube_url}:")
-            print(f"STDOUT: {stdout}")
-            print(f"STDERR: {stderr}")
-            print("Trying fallback to get any video stream URL (-g only)...")
+            print(f"Error getting 'bestvideo' stream URL from yt-dlp for {youtube_url}:", file=sys.stderr)
+            print(f"STDOUT: {stdout}", file=sys.stderr)
+            print(f"STDERR: {stderr}", file=sys.stderr)
+            print("Trying fallback to get any video stream URL (-g only)...", file=sys.stderr)
             yt_dlp_command_fallback = ["yt-dlp", "-g", "--no-warnings", youtube_url]
             process_fallback = subprocess.Popen(yt_dlp_command_fallback, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, encoding='utf-8')
             stdout_fallback, stderr_fallback = process_fallback.communicate(timeout=60)
 
             if process_fallback.returncode == 0 and stdout_fallback:
                 video_stream_url = stdout_fallback.strip().split('\n')[0]
-                print(f"Successfully fetched fallback stream URL: {video_stream_url}")
+                print(f"Successfully fetched fallback stream URL: {video_stream_url}", file=sys.stderr)
             else:
-                print(f"Fallback failed to get stream URL from yt-dlp for {youtube_url}:")
-                print(f"STDOUT: {stdout_fallback}")
-                print(f"STDERR: {stderr_fallback}")
+                print(f"Fallback failed to get stream URL from yt-dlp for {youtube_url}:", file=sys.stderr)
+                print(f"STDOUT: {stdout_fallback}", file=sys.stderr)
+                print(f"STDERR: {stderr_fallback}", file=sys.stderr)
                 return []
     except subprocess.TimeoutExpired:
-        print(f"yt-dlp command timed out while fetching stream URL for {youtube_url}.")
+        print(f"yt-dlp command timed out while fetching stream URL for {youtube_url}.", file=sys.stderr)
         return []
     except Exception as e:
-        print(f"An exception occurred while running yt-dlp for {youtube_url}: {e}")
+        print(f"An exception occurred while running yt-dlp for {youtube_url}: {e}", file=sys.stderr)
         return []
 
     if not video_stream_url:
-        print(f"Could not retrieve a video stream URL for {youtube_url}.")
+        print(f"Could not retrieve a video stream URL for {youtube_url}.", file=sys.stderr)
         return []
 
     if "v=" in youtube_url:
@@ -90,7 +91,7 @@ def take_youtube_screenshots(youtube_url: str, timestamps: list, output_dir: str
         output_filepath = os.path.join(output_dir, output_filename)
 
         try:
-            print(f"Attempting to capture frame at timestamp '{timestamp_str}' for {youtube_url}...")
+            print(f"Attempting to capture frame at timestamp '{timestamp_str}' for {youtube_url}...", file=sys.stderr)
             ffmpeg_command = [
                 "ffmpeg",
                 "-ss", timestamp_str,
@@ -107,19 +108,19 @@ def take_youtube_screenshots(youtube_url: str, timestamps: list, output_dir: str
             if process.returncode == 0:
                 if os.path.exists(output_filepath) and os.path.getsize(output_filepath) > 0:
                     screenshot_paths.append(os.path.abspath(output_filepath))
-                    print(f"Successfully saved screenshot: {os.path.abspath(output_filepath)}")
+                    print(f"Successfully saved screenshot: {os.path.abspath(output_filepath)}", file=sys.stderr)
                 else:
-                    print(f"FFmpeg reported success for timestamp {timestamp_str}, but output file {output_filepath} is missing or empty.")
-                    print(f"FFmpeg STDOUT: {stdout}")
-                    print(f"FFmpeg STDERR: {stderr}")
+                    print(f"FFmpeg reported success for timestamp {timestamp_str}, but output file {output_filepath} is missing or empty.", file=sys.stderr)
+                    print(f"FFmpeg STDOUT: {stdout}", file=sys.stderr)
+                    print(f"FFmpeg STDERR: {stderr}", file=sys.stderr)
             else:
-                print(f"Error capturing screenshot for timestamp {timestamp_str} on {youtube_url}:")
-                print(f"FFmpeg STDOUT: {stdout}")
-                print(f"FFmpeg STDERR: {stderr}")
+                print(f"Error capturing screenshot for timestamp {timestamp_str} on {youtube_url}:", file=sys.stderr)
+                print(f"FFmpeg STDOUT: {stdout}", file=sys.stderr)
+                print(f"FFmpeg STDERR: {stderr}", file=sys.stderr)
         except subprocess.TimeoutExpired:
-            print(f"FFmpeg command timed out for timestamp {timestamp_str} on video {youtube_url}.")
+            print(f"FFmpeg command timed out for timestamp {timestamp_str} on video {youtube_url}.", file=sys.stderr)
         except Exception as e:
-            print(f"An exception occurred while running ffmpeg for timestamp {timestamp_str} on {youtube_url}: {e}")
+            print(f"An exception occurred while running ffmpeg for timestamp {timestamp_str} on {youtube_url}: {e}", file=sys.stderr)
     return screenshot_paths
 
 if __name__ == "__main__":
@@ -151,19 +152,19 @@ if __name__ == "__main__":
             with open(args.timestamps_file, 'r', encoding='utf-8') as f:
                 actual_timestamps = [line.strip() for line in f if line.strip()]
             if not actual_timestamps:
-                print(f"Warning: Timestamps file '{args.timestamps_file}' is empty or contains no valid timestamps.")
+                print(f"Warning: Timestamps file '{args.timestamps_file}' is empty or contains no valid timestamps.", file=sys.stderr)
                 parser.exit(1)
         except FileNotFoundError:
-            print(f"Error: Timestamps file not found: {args.timestamps_file}")
+            print(f"Error: Timestamps file not found: {args.timestamps_file}", file=sys.stderr)
             parser.exit(1)
         except Exception as e:
-            print(f"Error reading timestamps file '{args.timestamps_file}': {e}")
+            print(f"Error reading timestamps file '{args.timestamps_file}': {e}", file=sys.stderr)
             parser.exit(1)
     elif args.timestamps:
         actual_timestamps = args.timestamps
 
     if not actual_timestamps:
-        print("Error: No timestamps to process. Please provide timestamps via -ts/--timestamps or -tf/--timestamps_file.")
+        print("Error: No timestamps to process. Please provide timestamps via -ts/--timestamps or -tf/--timestamps_file.", file=sys.stderr)
         parser.exit(1)
 
     # Use args.url for the YouTube URL
@@ -175,23 +176,23 @@ if __name__ == "__main__":
 
     video_specific_output_dir = os.path.join(args.output_dir_base, f"video_{video_id_for_folder}")
 
-    print(f"\nProcessing YouTube URL: {args.url}") # Changed from args.youtube_url
+    print(f"\nProcessing YouTube URL: {args.url}", file=sys.stderr) # Changed from args.youtube_url
     if args.timestamps_file:
-        print(f"Reading timestamps from file: {args.timestamps_file}")
-    print(f"Requested timestamps: {actual_timestamps}")
-    print(f"Screenshots will be saved in a subfolder within: {os.path.abspath(args.output_dir_base)}")
-    print(f"Specifically, in: {os.path.abspath(video_specific_output_dir)}\n")
+        print(f"Reading timestamps from file: {args.timestamps_file}", file=sys.stderr)
+    print(f"Requested timestamps: {actual_timestamps}", file=sys.stderr)
+    print(f"Screenshots will be saved in a subfolder within: {os.path.abspath(args.output_dir_base)}", file=sys.stderr)
+    print(f"Specifically, in: {os.path.abspath(video_specific_output_dir)}\n", file=sys.stderr)
 
     # Pass args.url to the function
     saved_files = take_youtube_screenshots(args.url, actual_timestamps, output_dir=video_specific_output_dir)
 
     if saved_files:
-        print("\n--- Summary ---")
-        print("Screenshots saved successfully:")
+        print("\n--- Summary ---", file=sys.stderr)
+        print("Screenshots saved successfully:", file=sys.stderr)
         for f_path in saved_files:
-            print(f"- {f_path}")
+            print(f"- {f_path}", file=sys.stderr)
     else:
-        print("\n--- Summary ---")
-        print("No screenshots were saved, or an error occurred. Check the logs above.")
+        print("\n--- Summary ---", file=sys.stderr)
+        print("No screenshots were saved, or an error occurred. Check the logs above.", file=sys.stderr)
 
-    print("\nScript finished.")
+    print("\nScript finished.", file=sys.stderr)
